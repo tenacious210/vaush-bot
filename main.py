@@ -1,13 +1,13 @@
 from schedule import every, repeat, run_pending
 from aitextgen import aitextgen
 from dggbot import DGGBot, Message
-from os import getenv, execv
 from time import sleep
 from threading import Thread
 from logging.handlers import RotatingFileHandler
 import logging
 import sys
 import re
+import os
 
 sys.tracebacklimit = 3
 
@@ -23,10 +23,11 @@ log_stream_handler.setLevel(logging.INFO)
 log_formatter = logging.Formatter(log_format)
 log_stream_handler.setFormatter(log_formatter)
 logger.addHandler(log_stream_handler)
+logger.info("Starting")
 
-dgg_bot = DGGBot(auth_token=getenv("DGG_AUTH"), username="hac")
-dgg_bot.last_mention = ""
-dgg_bot.enabled = True
+dgg_bot = DGGBot(auth_token=os.getenv("DGG_AUTH"), username="hac")
+dgg_bot.last_mention = None
+dgg_bot.enabled = False
 ai = aitextgen(
     model_folder="trained_model",
     tokenizer_file="trained_model/aitextgen.tokenizer.json",
@@ -34,13 +35,21 @@ ai = aitextgen(
 
 
 def is_admin(msg: Message):
-    return msg.nick in ("Cake", "RightToBearArmsLOL", "Destiny", "tena")
+    if msg.nick in ("Cake", "RightToBearArmsLOL", "Destiny", "tena"):
+        return True
+    else:
+        logger.info(f'"{msg.nick}" failed admin check')
+        return False
 
 
 @repeat(every(5).minutes)
 def generate_message():
-    ai_msg = ai.generate_one(max_length=30, prompt=dgg_bot.last_mention)
-    dgg_msg = f'{dgg_bot.last_mention} {ai_msg[ai_msg.find(" "):]}'
+    m_data = m_nick = ""
+    if isinstance(dgg_bot.last_mention, Message):
+        m_data = dgg_bot.last_mention.data
+        m_nick = dgg_bot.last_mention.nick
+    ai_msg = ai.generate_one(max_length=len(m_data) + 30, prompt=m_data)
+    dgg_msg = f'{m_nick}{" " if m_nick else ""}{ai_msg[len(m_data):]}'
     logger.info(f'Message: "{dgg_msg}"')
     if dgg_bot.enabled:
         dgg_bot.send(dgg_msg)
@@ -50,8 +59,8 @@ def generate_message():
 
 @dgg_bot.event("on_msg")
 def update_mention(msg: Message):
-    if re.search(r"hac\b", msg.data):
-        dgg_bot.last_mention = f"{msg.nick} "
+    if re.search(r"\bhac\b", msg.data):
+        dgg_bot.last_mention = msg
 
 
 @dgg_bot.command(["venable"])
@@ -71,7 +80,9 @@ def disable_bot(msg: Message):
 @dgg_bot.command(["vreset"])
 @dgg_bot.check(is_admin)
 def reset_bot(msg: Message):
-    execv(sys.argv[0], sys.argv)
+    logger.info(f"Bot reset by {msg.nick}")
+    sys.stdout.flush()
+    os.execv(sys.argv[0], sys.argv)
 
 
 def run_scheduled():
