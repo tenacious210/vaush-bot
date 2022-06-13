@@ -1,7 +1,7 @@
 from schedule import every, repeat, run_pending
 from aitextgen import aitextgen
 from dggbot import DGGBot, Message
-from os import getenv
+from os import getenv, execv
 from time import sleep
 from threading import Thread
 from logging.handlers import RotatingFileHandler
@@ -66,6 +66,12 @@ def enable_bot(msg: Message):
 def disable_bot(msg: Message):
     dgg_bot.enabled = False
     logger.info(f"Bot disabled by {msg.nick}")
+
+
+@dgg_bot.command(["vreset"])
+@dgg_bot.check(is_admin)
+def reset_bot(msg: Message):
+    execv(sys.argv[0], sys.argv)
 
 
 def run_scheduled():
