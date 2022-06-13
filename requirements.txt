@@ -1,0 +1,6 @@
+dgg-bot
+websocket-client
+schedule
+requests
+aitextgen
+youtube_transcript_api
