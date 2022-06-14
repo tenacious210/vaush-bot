@@ -49,7 +49,10 @@ def generate_message():
         m_data = dgg_bot.last_mention.data
         m_nick = dgg_bot.last_mention.nick
     ai_msg = ai.generate_one(max_length=len(m_data) + 30, prompt=m_data)
-    dgg_msg = f'{m_nick}{" " if m_nick else ""}{ai_msg[len(m_data):]}'
+    if m_nick:
+        dgg_msg = f"{m_nick} {ai_msg[len(m_data):]}"
+    else:
+        dgg_msg = ai_msg[ai_msg.find(" ") :]
     logger.info(f'Message: "{dgg_msg}"')
     if dgg_bot.enabled:
         dgg_bot.send(dgg_msg)
