@@ -48,6 +48,8 @@ def generate_message():
     if isinstance(dgg_bot.last_mention, Message):
         m_data = dgg_bot.last_mention.data
         m_nick = dgg_bot.last_mention.nick
+    if len(m_data) > 60:
+        m_data = m_data[:59]
     ai_msg = ai.generate_one(max_length=len(m_data) + 30, prompt=m_data)
     if m_nick:
         dgg_msg = f"{m_nick} {ai_msg[len(m_data):]}"
@@ -57,7 +59,7 @@ def generate_message():
     if dgg_bot.enabled:
         dgg_bot.send(dgg_msg)
         logger.info("Message sent")
-    dgg_bot.last_mention = ""
+    dgg_bot.last_mention = None
 
 
 @dgg_bot.event("on_msg")
